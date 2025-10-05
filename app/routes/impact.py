@@ -153,3 +153,221 @@ def simulate_asteroid_impact(asteroid_id):
             'success': False,
             'error': str(e)
         }), 500
+    
+
+@api_bp.route('/geocode', methods=['GET'])
+def geocode_address():
+    """
+    Geocodifica una dirección o ciudad
+    
+    GET /api/geocode?address=São Paulo, Brazil
+    GET /api/geocode?address=New York, USA
+    """
+    try:
+        from app.services.geocoding_service import GeocodingService
+        
+        address = request.args.get('address')
+        
+        if not address:
+            return jsonify({
+                'success': False,
+                'error': 'Missing address parameter'
+            }), 400
+        
+        geocoding = GeocodingService()
+        result = geocoding.get_coordinates(address)
+        
+        if not result:
+            return jsonify({
+                'success': False,
+                'error': f'Address "{address}" not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/reverse-geocode', methods=['GET'])
+def reverse_geocode():
+    """
+    Geocodificación inversa: obtiene dirección desde coordenadas
+    
+    GET /api/reverse-geocode?lat=-23.5505&lon=-46.6333
+    """
+    try:
+        from app.services.geocoding_service import GeocodingService
+        
+        lat = request.args.get('lat', type=float)
+        lon = request.args.get('lon', type=float)
+        
+        if lat is None or lon is None:
+            return jsonify({
+                'success': False,
+                'error': 'Missing lat or lon parameters'
+            }), 400
+        
+        geocoding = GeocodingService()
+        result = geocoding.reverse_geocode(lat, lon)
+        
+        if not result:
+            return jsonify({
+                'success': False,
+                'error': 'Location not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/impact/simulate-city', methods=['POST'])
+def simulate_city_impact():
+    """
+    Simula el impacto de un asteroide en una ciudad específica
+    
+    Endpoint: POST /api/impact/simulate-city
+    
+    Body JSON:
+    {
+        "city_name": "São Paulo, Brazil",
+        "diameter_m": 500,
+        "velocity_km_s": 20,
+        "target_type": "land"
+    }
+    
+    Este endpoint:
+    1. Geocodifica la ciudad
+    2. Simula el impacto
+    3. Encuentra ciudades afectadas
+    """
+    try:
+        from app.services.geocoding_service import GeocodingService
+        
+        data = request.get_json()
+        
+        # Validar datos requeridos
+        if 'city_name' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing city_name'
+            }), 400
+            
+        if 'diameter_m' not in data or 'velocity_km_s' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing diameter_m and velocity_km_s'
+            }), 400
+        
+        # Geocodificar la ciudad
+        geocoding = GeocodingService()
+        location = geocoding.get_coordinates(data['city_name'])
+        
+        if not location:
+            return jsonify({
+                'success': False,
+                'error': f'Could not find coordinates for {data["city_name"]}'
+            }), 400
+        
+        impact_lat = location['lat']
+        impact_lon = location['lon']
+        
+        # Simular el impacto
+        results = impact_service.simulate_impact(
+            diameter_m=data['diameter_m'],
+            velocity_km_s=data['velocity_km_s'],
+            impact_lat=impact_lat,
+            impact_lon=impact_lon,
+            target_type=data.get('target_type', 'land')
+        )
+        
+        # Encontrar ciudades afectadas
+        max_radius = max(
+            results['damage_zones']['shockwave_radius_km'],
+            results['damage_zones']['thermal_radiation_km'],
+            results['damage_zones']['seismic_effect_km']
+        )
+        
+        affected_cities = geocoding.find_cities_in_radius(
+            impact_lat, 
+            impact_lon, 
+            max_radius
+        )
+        
+        # Clasificar daño por ciudad
+        for city in affected_cities:
+            distance = city['distance_km']
+            
+            if distance <= results['damage_zones']['crater_radius_km']:
+                city['damage_level'] = 'total_destruction'
+                city['effects'] = 'Destrucción total - Vaporización inmediata'
+            elif distance <= results['damage_zones']['fireball_radius_km']:
+                city['damage_level'] = 'extreme'
+                city['effects'] = 'Destrucción extrema - Incineración total'
+            elif distance <= results['damage_zones']['shockwave_radius_km']:
+                city['damage_level'] = 'severe'
+                city['effects'] = 'Daño severo - Colapso de edificios, bajas masivas'
+            elif distance <= results['damage_zones']['thermal_radiation_km']:
+                city['damage_level'] = 'moderate'
+                city['effects'] = 'Daño moderado - Quemaduras, incendios, estructuras dañadas'
+            elif distance <= results['damage_zones']['seismic_effect_km']:
+                city['damage_level'] = 'minor'
+                city['effects'] = 'Daño menor - Ventanas rotas, temblores perceptibles'
+            else:
+                city['damage_level'] = 'minimal'
+                city['effects'] = 'Efectos mínimos - Vibraciones menores'
+        
+        # Respuesta en el formato esperado
+        response_data = {
+            'impact': {
+                'location': {
+                    'lat': impact_lat,
+                    'lon': impact_lon,
+                    'city': location.get('city'),
+                    'country': location.get('country'),
+                    'formatted_address': location.get('formatted_address')
+                },
+                'asteroid': {
+                    'diameter_m': data['diameter_m'],
+                    'velocity_km_s': data['velocity_km_s'],
+                    'target_type': data.get('target_type', 'land')
+                },
+                'energy': results['energy'],
+                'crater': results['crater'],
+                'damage_zones': results['damage_zones']
+            },
+            'affected_cities': [{
+                'city': city['name'],
+                'country': city['country'],
+                'population': city['population'],
+                'distance_from_impact_km': city['distance_km'],
+                'damage_level': city['damage_level'],
+                'effects': city['effects']
+            } for city in affected_cities],
+            'total_cities_affected': len(affected_cities)
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': response_data
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

@@ -8,6 +8,7 @@ class Config:
     """Configuración base de la aplicación"""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key'
     NASA_API_KEY = os.environ.get('NASA_API_KEY') or 'DEMO_KEY'
+    DISTANCEMATRIX_API_KEY = os.environ.get('DISTANCEMATRIX_API_KEY') or 'DEMO_KEY'
     
     # URLs de APIs externas
     NASA_NEO_API_URL = 'https://api.nasa.gov/neo/rest/v1'
