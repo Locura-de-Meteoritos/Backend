@@ -1,0 +1,74 @@
+### Test 1: Health Check
+GET http://localhost:5000/health
+
+###
+
+### Test 2: Obtener asteroides de NASA
+GET http://localhost:5000/api/asteroids/near-earth
+
+###
+
+### Test 3: Simular impacto con parámetros específicos
+POST http://localhost:5000/api/impact/simulate
+Content-Type: application/json
+
+{
+  "diameter_m": 507,
+  "velocity_km_s": 18.29,
+  "impact_location": {
+    "lat": -23.5505,
+    "lon": -46.6333
+  },
+  "target_type": "land"
+}
+
+###
+
+### Test 4: Simular con datos de NASA directamente
+POST http://localhost:5000/api/impact/simulate
+Content-Type: application/json
+
+{
+  "nasa_data": {
+    "diameter_max_m": 701.5198735305,
+    "diameter_min_m": 313.7292249562,
+    "close_approach_data": [{
+      "velocity_km_s": 18.2933115554
+    }]
+  },
+  "impact_location": {
+    "lat": -23.5505,
+    "lon": -46.6333
+  },
+  "target_type": "land"
+}
+
+###
+
+### Test 5: Simular asteroide por ID
+POST http://localhost:5000/api/impact/simulate-asteroid/2247517
+Content-Type: application/json
+
+{
+  "impact_location": {
+    "lat": -23.5505,
+    "lon": -46.6333
+  },
+  "target_type": "land"
+}
+
+###
+
+### Test 6: Impacto en agua (océano)
+POST http://localhost:5000/api/impact/simulate
+Content-Type: application/json
+
+{
+  "diameter_m": 300,
+  "velocity_km_s": 25,
+  "impact_location": {
+    "lat": -10.5,
+    "lon": -50.3
+  },
+  "target_type": "water"
+}
