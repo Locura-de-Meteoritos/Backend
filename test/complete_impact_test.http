@@ -1,0 +1,86 @@
+### ========================================
+### PRUEBAS COMPLETAS - IMPACTO CON TODO
+### ========================================
+
+### Test 1: Impacto completo con asteroide real de NASA
+### Incluye: tiempo de colisión + impactos ambientales + ciudades afectadas
+POST http://localhost:5000/api/impact/simulate-asteroid/2247517
+Content-Type: application/json
+
+{
+  "impact_location": {
+    "lat": 35.6762,
+    "lon": 139.6503
+  },
+  "target_type": "land"
+}
+
+###
+
+### Test 2: Impacto en océano (debería mostrar tsunami)
+POST http://localhost:5000/api/impact/simulate-coordinates
+Content-Type: application/json
+
+{
+  "coordinates": {
+    "lat": 0,
+    "lon": -140
+  },
+  "asteroid": {
+    "diameter_m": 1000,
+    "velocity_km_s": 25
+  },
+  "target_type": "water"
+}
+
+###
+
+### Test 3: Impacto pequeño (efectos locales)
+POST http://localhost:5000/api/impact/simulate-coordinates
+Content-Type: application/json
+
+{
+  "coordinates": {
+    "lat": 40.7128,
+    "lon": -74.0060
+  },
+  "asteroid": {
+    "diameter_m": 50,
+    "velocity_km_s": 15
+  },
+  "target_type": "land"
+}
+
+###
+
+### Test 4: Impacto catastrófico (evento de extinción)
+POST http://localhost:5000/api/impact/simulate-coordinates
+Content-Type: application/json
+
+{
+  "coordinates": {
+    "lat": 20,
+    "lon": -100
+  },
+  "asteroid": {
+    "diameter_m": 10000,
+    "velocity_km_s": 30
+  },
+  "target_type": "land"
+}
+
+###
+
+### Test 5: Verificar tiempo de impacto con asteroide cercano
+GET http://localhost:5000/api/asteroids/near-earth?start_date=2025-10-05&end_date=2025-10-12
+
+###
+
+### Test 6: Identificar ubicación para ver océano
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": -10,
+  "lon": -35
+}

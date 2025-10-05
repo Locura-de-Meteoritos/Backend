@@ -1,0 +1,169 @@
+### Test 1: Identificar São Paulo desde coordenadas
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": -23.5505,
+  "lon": -46.6333
+}
+
+###
+
+### Test 2: Identificar New York
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": 40.7128,
+  "lon": -74.0060
+}
+
+###
+
+### Test 3: Identificar Tokyo
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": 35.6762,
+  "lon": 139.6503
+}
+
+###
+
+### Test 4: Identificar ubicación en océano
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": 20,
+  "lon": -160
+}
+
+
+###
+
+### Test 5: Simular impacto desde coordenadas (flujo completo frontend)
+POST http://localhost:5000/api/impact/simulate-coordinates
+Content-Type: application/json
+
+{
+  "coordinates": {
+    "lat": -23.5505,
+    "lon": -46.6333
+  },
+  "asteroid": {
+    "diameter_m": 500,
+    "velocity_km_s": 20
+  },
+  "target_type": "land"
+}
+
+###
+
+### Test 6: Simular impacto en océano
+POST http://localhost:5000/api/impact/simulate-coordinates
+Content-Type: application/json
+
+{
+  "coordinates": {
+    "lat": -10.5,
+    "lon": -35.8
+  },
+  "asteroid": {
+    "diameter_m": 1000,
+    "velocity_km_s": 25
+  },
+  "target_type": "water"
+}
+
+
+
+
+
+### Test 7: Identificar Paris desde coordenadas
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": 48.8566,
+  "lon": 2.3522
+}
+
+### Test 8: Identificar Moscú desde coordenadas
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": 55.7558,
+  "lon": 37.6173
+}
+
+### Test 9: Identificar lugar remoto desde coordenadas
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": -12.4872,
+  "lon": -65.3928
+}
+
+### Test 10: Ubicación remota - Debería encontrar ciudad cercana
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": -54.7283,
+  "lon": -67.1967
+}
+
+
+### Test 11: Ubicación remota - Debería encontrar ciudad cercana
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": -12.04318,
+  "lon": -77.02824
+}
+
+
+
+### Test 1: Medio del Océano Pacífico
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": 0,
+  "lon": -140
+}
+
+### Test 2: Océano Atlántico
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": 20,
+  "lon": -40
+}
+
+### Test 3: Mar Mediterráneo
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": 36,
+  "lon": 15
+}
+
+### Test 4: Océano Índico
+POST http://localhost:5000/api/identify-location
+Content-Type: application/json
+
+{
+  "lat": -20,
+  "lon": 70
+}
+
+
+

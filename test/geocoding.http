@@ -1,0 +1,19 @@
+### Test 1: Geocodificar São Paulo
+GET http://localhost:5000/api/geocode?address=São Paulo, Brazil
+
+### Test 2: Geocodificar New York
+GET http://localhost:5000/api/geocode?address=New York, USA
+
+### Test 3: Geocodificación inversa
+GET http://localhost:5000/api/reverse-geocode?lat=-23.5505&lon=-46.6333
+
+### Test 4: Simular impacto con geocodificación
+POST http://localhost:5000/api/impact/simulate-city
+Content-Type: application/json
+
+{
+  "city_name": "São Paulo, Brazil",
+  "diameter_m": 500,
+  "velocity_km_s": 20,
+  "target_type": "land"
+}
