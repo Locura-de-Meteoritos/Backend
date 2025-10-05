@@ -11,6 +11,9 @@ This backend project was developed for the **NASA Space Apps Challenge 2024** an
 - 💥 Simulate asteroid impacts with realistic physics calculations
 - 📊 Calculate damage zones, seismic magnitudes, and impact effects
 - 🗺️ Estimate affected population within different impact radii
+- 🌐 Geocoding services to convert addresses to coordinates and vice versa
+- 🏙️ City-based impact simulations with automatic location detection
+- 🎯 Interactive coordinate-based simulations for frontend integration
 
 ---
 
@@ -30,7 +33,8 @@ Backend/
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── nasa_service.py     # NASA NeoWs API client
-│   │   └── impact_service.py   # Impact simulation logic
+│   │   ├── impact_service.py   # Impact simulation logic
+│   │   └── geocoding_service.py # DistanceMatrix AI geocoding client
 │   └── utils/
 │       ├── __init__.py
 │       └── physics.py          # Physics calculations (mass, energy, crater, etc.)
@@ -57,15 +61,57 @@ Backend/
 #### 4. **Services Layer** (`app/services/`)
 - **nasa_service.py**: NASA NeoWs API integration, data formatting
 - **impact_service.py**: Simulation orchestration, impact calculations
+- **geocoding_service.py**: DistanceMatrix AI integration for geocoding and reverse geocoding
 
 #### 5. **Utils Layer** (`app/utils/`)
 - **physics.py**: `ImpactPhysics` class with validated scientific formulas
 
 ---
 
+## ✨ Key Features
+
+### Advanced Impact Simulation
+- **Physics-based calculations** using validated scientific formulas (Collins et al. 2005)
+- **Multiple simulation modes**: direct parameters, NASA data, city-based, coordinate-based
+- **Comprehensive damage analysis**: crater size, seismic magnitude, thermal radiation, shockwave effects
+- **Population impact estimation** with affected area calculations
+
+### Geocoding & Location Services
+- **Forward geocoding**: Convert city names and addresses to coordinates
+- **Reverse geocoding**: Identify locations from coordinates
+- **City detection**: Automatic location identification for impact simulations
+- **Multi-language support**: Works with international addresses
+
+### NASA Integration
+- **Real-time asteroid data** from NASA NeoWs API
+- **Asteroid tracking**: Query near-Earth objects by date range
+- **Detailed asteroid profiles**: Mass, velocity, diameter, orbital data
+- **Direct simulation from NASA data**: Convert asteroid parameters to impact scenarios
+
+### Rate Limiting & Security
+- **Configurable rate limits**: Prevent API abuse (100 requests/hour default)
+- **CORS enabled**: Supports frontend integration from multiple origins
+- **Environment-based configuration**: Separate development and production settings
+
+---
+
 ## 🚀 API Endpoints
 
 Base URL: `http://localhost:5000/api`
+
+### Quick Reference
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/asteroids/near-earth` | Get near-Earth asteroids |
+| GET | `/api/asteroids/<id>` | Get asteroid details |
+| POST | `/api/impact/simulate` | Simulate impact (custom params) |
+| POST | `/api/impact/simulate-asteroid/<id>` | Simulate impact (NASA asteroid) |
+| POST | `/api/impact/simulate-city` | Simulate impact on city |
+| POST | `/api/impact/simulate-coordinates` | Simulate impact from coordinates |
+| GET | `/api/geocode` | Convert address to coordinates |
+| GET | `/api/reverse-geocode` | Convert coordinates to address |
+| POST | `/api/identify-location` | Identify location from coordinates |
+| GET | `/health` | Health check |
 
 ### 1. Asteroid Queries
 
@@ -205,9 +251,130 @@ Simulate the impact of a specific NASA asteroid.
 
 **Example:** `POST /api/impact/simulate-asteroid/2247517`
 
+#### POST `/api/impact/simulate-city`
+Simulate asteroid impact on a specific city by name.
+
+**Body:**
+```json
+{
+  "city_name": "São Paulo, Brazil",
+  "diameter_m": 500,
+  "velocity_km_s": 20,
+  "target_type": "land"
+}
+```
+
+This endpoint:
+1. Geocodes the city name to coordinates
+2. Simulates the impact
+3. Identifies affected cities within damage radii
+
+#### POST `/api/impact/simulate-coordinates`
+Simulate impact directly from coordinates sent by the frontend.
+
+**Body:**
+```json
+{
+  "coordinates": {
+    "lat": -23.5505,
+    "lon": -46.6333
+  },
+  "asteroid": {
+    "diameter_m": 500,
+    "velocity_km_s": 20
+  },
+  "target_type": "land"
+}
+```
+
+This endpoint:
+1. Receives coordinates from frontend
+2. Identifies the location (reverse geocoding)
+3. Simulates the impact
+4. Returns results with affected cities
+
 ---
 
-### 3. Health Check
+### 3. Geocoding Services
+
+#### GET `/api/geocode`
+Convert an address or city name to geographic coordinates.
+
+**Query Parameters:**
+- `address` (required): Address or city name to geocode
+
+**Examples:**
+- `GET /api/geocode?address=São Paulo, Brazil`
+- `GET /api/geocode?address=New York, USA`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "formatted_address": "São Paulo, SP, Brazil",
+    "lat": -23.5505,
+    "lon": -46.6333,
+    "city": "São Paulo",
+    "country": "Brazil"
+  }
+}
+```
+
+#### GET `/api/reverse-geocode`
+Convert geographic coordinates to a readable address.
+
+**Query Parameters:**
+- `lat` (required): Latitude
+- `lon` (required): Longitude
+
+**Example:**
+- `GET /api/reverse-geocode?lat=-23.5505&lon=-46.6333`
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "formatted_address": "São Paulo, SP, Brazil",
+    "city": "São Paulo",
+    "state": "SP",
+    "country": "Brazil"
+  }
+}
+```
+
+#### POST `/api/identify-location`
+Identify a location based on coordinates (alternative to reverse-geocode).
+
+**Body:**
+```json
+{
+  "lat": -23.5505,
+  "lon": -46.6333
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "formatted_address": "São Paulo, SP, Brazil",
+    "city": "São Paulo",
+    "state": "SP",
+    "country": "Brazil",
+    "coordinates": {
+      "lat": -23.5505,
+      "lon": -46.6333
+    }
+  }
+}
+```
+
+---
+
+### 4. Health Check
 
 #### GET `/health`
 Verify that the API is running correctly.
@@ -249,6 +416,7 @@ Create a `.env` file in the project root:
 ```env
 # API Keys
 NASA_API_KEY=your_api_key_here
+DISTANCEMATRIX_API_KEY=your_distancematrix_key_here
 
 # Flask Configuration
 FLASK_ENV=development
@@ -256,10 +424,19 @@ PORT=5000
 SECRET_KEY=your_secret_key_here
 ```
 
-**Get NASA API Key:**
-1. Visit: https://api.nasa.gov/
-2. Complete the registration form
-3. Copy your API key and add it to the `.env` file
+**Get API Keys:**
+
+1. **NASA API Key:**
+   - Visit: https://api.nasa.gov/
+   - Complete the registration form
+   - Copy your API key and add it to the `.env` file
+
+2. **DistanceMatrix AI API Key (for geocoding):**
+   - Visit: https://distancematrix.ai/
+   - Sign up for an account
+   - Get your API key from the dashboard: https://distancematrix.ai/dashboard
+   - Add it to the `.env` file
+   - Free tier includes 100 requests/month
 
 ### 3. Run the Application
 
@@ -284,8 +461,11 @@ Listed in `requirements.txt`:
 
 - **Flask** `2.3.2` - Minimalist web framework
 - **Flask-CORS** `4.0.0` - Cross-Origin Resource Sharing handler
+- **Flask-Limiter** `3.3.1` - Rate limiting extension for Flask
 - **requests** `2.31.0` - HTTP client for consuming external APIs
 - **python-dotenv** `1.0.0` - Environment variable management
+- **numpy** `2.1.3` - Numerical computing library for Python
+- **scipy** `1.14.1` - Scientific computing library (algorithms, integration, optimization)
 
 ---
 
@@ -328,6 +508,13 @@ M = 0.67 × log₁₀(E) - 5.87
 - Typical asteroid density: **3000 kg/m³**
 - TNT energy: **4.184 × 10⁹ J/ton**
 - Earth radius: **6371 km**
+
+### Scientific Libraries Integration
+The project uses **NumPy** and **SciPy** for:
+- **Numerical computations**: Efficient array operations and mathematical functions
+- **Scientific algorithms**: Advanced interpolation, integration, and optimization
+- **Data processing**: Fast calculations for large datasets and complex physics simulations
+- **Future extensibility**: Ready for more advanced physics models (atmospheric entry, trajectory calculations, etc.)
 
 ---
 
@@ -469,7 +656,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/health" -Method GET
 # 2. Get near-Earth asteroids
 Invoke-RestMethod -Uri "http://localhost:5000/api/asteroids/near-earth?start_date=2024-10-01&end_date=2024-10-07" -Method GET
 
-# 3. Simulate impact
+# 3. Simulate impact with custom parameters
 $body = @{
     diameter_m = 250
     velocity_km_s = 20
@@ -481,32 +668,95 @@ $body = @{
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "http://localhost:5000/api/impact/simulate" -Method POST -Body $body -ContentType "application/json"
+
+# 4. Geocode a city
+Invoke-RestMethod -Uri "http://localhost:5000/api/geocode?address=Tokyo, Japan" -Method GET
+
+# 5. Reverse geocode coordinates
+Invoke-RestMethod -Uri "http://localhost:5000/api/reverse-geocode?lat=35.6762&lon=139.6503" -Method GET
+
+# 6. Simulate impact on a city by name
+$cityBody = @{
+    city_name = "New York, USA"
+    diameter_m = 500
+    velocity_km_s = 20
+    target_type = "land"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:5000/api/impact/simulate-city" -Method POST -Body $cityBody -ContentType "application/json"
+
+# 7. Simulate impact from coordinates (frontend integration)
+$coordBody = @{
+    coordinates = @{
+        lat = 40.7128
+        lon = -74.0060
+    }
+    asteroid = @{
+        diameter_m = 300
+        velocity_km_s = 18
+    }
+    target_type = "land"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:5000/api/impact/simulate-coordinates" -Method POST -Body $coordBody -ContentType "application/json"
+```
+
+### Testing with cURL (Linux/Mac)
+
+```bash
+# Health check
+curl http://localhost:5000/health
+
+# Geocode city
+curl "http://localhost:5000/api/geocode?address=Paris,%20France"
+
+# Simulate city impact
+curl -X POST http://localhost:5000/api/impact/simulate-city \
+  -H "Content-Type: application/json" \
+  -d '{
+    "city_name": "London, UK",
+    "diameter_m": 400,
+    "velocity_km_s": 22,
+    "target_type": "land"
+  }'
 ```
 
 ---
 
 ## 🚧 Next Steps and Recommended Improvements
 
+### Completed Features ✅
+- [x] **Geocoding integration** with DistanceMatrix AI
+- [x] **Rate limiting** with Flask-Limiter (100 req/hour default)
+- [x] **Scientific libraries** (NumPy, SciPy) for advanced calculations
+- [x] **Multiple simulation endpoints** (city-based, coordinate-based, NASA-based)
+- [x] **CORS configuration** for frontend integration
+
 ### Pending Features
 - [ ] Implement unit tests with `pytest`
 - [ ] Add WorldPop API integration for precise population estimates
 - [ ] Implement NASA response caching (Redis)
-- [ ] Add rate limiting per IP
 - [ ] Create endpoint for impact zone visualization (GeoJSON)
+- [ ] Add atmospheric entry calculations using SciPy
+- [ ] Implement trajectory prediction models
 - [ ] Dockerize the application
 - [ ] CI/CD with GitHub Actions
 
 ### Code Improvements
 - [ ] Add schema validation with `marshmallow` or `pydantic`
-- [ ] Implement structured logging
+- [ ] Implement structured logging with `python-json-logger`
 - [ ] Add metrics and observability (Prometheus)
-- [ ] OpenAPI/Swagger documentation
+- [ ] OpenAPI/Swagger documentation with `flask-swagger-ui`
+- [ ] Add database support (PostgreSQL) for storing simulation results
+- [ ] Implement WebSocket support for real-time updates
 
 ### Deployment
 - [ ] Prepare for Azure App Service
 - [ ] Configure environment variables in production
 - [ ] Implement HTTPS and SSL certificates
 - [ ] Configure custom domain
+- [ ] Set up monitoring and alerting
+- [ ] Implement backup and disaster recovery
 
 ---
 
@@ -528,6 +778,126 @@ For questions or issues:
 1. Review the external API documentation
 2. Check the application logs
 3. Contact the development team
+
+---
+
+## 📋 Technical Specifications
+
+### API Performance
+- **Rate Limiting**: 100 requests/hour per IP (configurable)
+- **Response Format**: JSON with consistent `{success, data/error}` structure
+- **Timeout**: 10 seconds for external API calls
+- **CORS**: Enabled for `localhost:3000` and `localhost:5173` (React/Vite)
+
+### Data Sources
+- **NASA NeoWs API**: Real-time asteroid data with 7-day default range
+- **DistanceMatrix AI**: Geocoding and reverse geocoding services
+- **USGS Earthquake Catalog**: (Configured, ready for seismic data integration)
+
+### Calculation Accuracy
+- **Physics Models**: Based on peer-reviewed research (Collins et al. 2005)
+- **Crater Diameter**: ±20% accuracy (empirical scaling laws)
+- **Energy Calculations**: High precision using double-precision floating-point
+- **Seismic Magnitude**: Richter scale estimation with logarithmic scaling
+
+### Supported Input Formats
+- **Dates**: ISO 8601 format (YYYY-MM-DD)
+- **Coordinates**: Decimal degrees (lat: -90 to 90, lon: -180 to 180)
+- **Asteroid Parameters**: SI units (meters, km/s, kg)
+- **Addresses**: Natural language, multi-language support via DistanceMatrix AI
+
+### Error Handling
+- **HTTP Status Codes**: 200 (success), 400 (bad request), 404 (not found), 500 (server error)
+- **Validation**: Input validation with descriptive error messages
+- **Fallbacks**: Default values for missing optional parameters
+- **Logging**: Comprehensive error logging for debugging
+
+---
+
+## 🔐 Security Considerations
+
+### API Keys
+- **Never commit** API keys to version control
+- Use `.env` file for local development
+- Use environment variables in production
+- Rotate keys periodically
+
+### Rate Limiting
+- Prevents abuse and ensures fair usage
+- Configurable per endpoint if needed
+- Consider implementing per-user limits for production
+
+### CORS Configuration
+- Currently allows specific local origins
+- Update `CORS_ORIGINS` in `config.py` for production
+- Consider implementing CORS dynamically based on environment
+
+---
+
+## 🌐 Integration Guide
+
+### Frontend Integration Example (React/Next.js)
+
+```javascript
+// Simulate impact on coordinates selected from map
+const simulateImpact = async (lat, lon, asteroidData) => {
+  const response = await fetch('http://localhost:5000/api/impact/simulate-coordinates', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      coordinates: { lat, lon },
+      asteroid: {
+        diameter_m: asteroidData.diameter,
+        velocity_km_s: asteroidData.velocity
+      },
+      target_type: 'land'
+    })
+  });
+  
+  const data = await response.json();
+  return data;
+};
+
+// Geocode city name
+const geocodeCity = async (cityName) => {
+  const response = await fetch(
+    `http://localhost:5000/api/geocode?address=${encodeURIComponent(cityName)}`
+  );
+  const data = await response.json();
+  return data;
+};
+```
+
+### Python Integration Example
+
+```python
+import requests
+
+# Get near-Earth asteroids
+response = requests.get(
+    'http://localhost:5000/api/asteroids/near-earth',
+    params={
+        'start_date': '2024-10-01',
+        'end_date': '2024-10-07'
+    }
+)
+asteroids = response.json()
+
+# Simulate city impact
+impact_data = {
+    'city_name': 'Tokyo, Japan',
+    'diameter_m': 500,
+    'velocity_km_s': 20,
+    'target_type': 'land'
+}
+response = requests.post(
+    'http://localhost:5000/api/impact/simulate-city',
+    json=impact_data
+)
+results = response.json()
+```
 
 ---
 
