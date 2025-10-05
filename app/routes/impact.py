@@ -371,3 +371,161 @@ def simulate_city_impact():
             'success': False,
             'error': str(e)
         }), 500
+    
+
+@api_bp.route('/identify-location', methods=['POST'])
+def identify_location():
+    """
+    Identifica qué lugar es según coordenadas
+    
+    Endpoint: POST /api/identify-location
+    
+    Body JSON:
+    {
+        "lat": -23.5505,
+        "lon": -46.6333
+    }
+    
+    Response:
+    {
+        "success": true,
+        "data": {
+            "formatted_address": "São Paulo, SP, Brazil",
+            "city": "São Paulo",
+            "state": "SP",
+            "country": "Brazil",
+            "coordinates": {
+                "lat": -23.5505,
+                "lon": -46.6333
+            }
+        }
+    }
+    """
+    try:
+        from app.services.geocoding_service import GeocodingService
+        
+        data = request.get_json()
+        
+        # Validar coordenadas
+        if 'lat' not in data or 'lon' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing lat or lon in request body'
+            }), 400
+        
+        lat = data['lat']
+        lon = data['lon']
+        
+        # Validar rangos
+        if not (-90 <= lat <= 90):
+            return jsonify({
+                'success': False,
+                'error': 'Latitude must be between -90 and 90'
+            }), 400
+        
+        if not (-180 <= lon <= 180):
+            return jsonify({
+                'success': False,
+                'error': 'Longitude must be between -180 and 180'
+            }), 400
+        
+        # Geocodificación inversa
+        geocoding = GeocodingService()
+        location = geocoding.reverse_geocode(lat, lon)
+        
+        if not location:
+            return jsonify({
+                'success': False,
+                'error': 'Could not identify location'
+            }), 404
+        
+        # Agregar coordenadas originales
+        location['coordinates'] = {
+            'lat': lat,
+            'lon': lon
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': location
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/impact/simulate-coordinates', methods=['POST'])
+def simulate_impact_from_coordinates():
+    """
+    Simula impacto directamente desde coordenadas enviadas por el frontend
+    
+    Endpoint: POST /api/impact/simulate-coordinates
+    
+    Body JSON:
+    {
+        "coordinates": {
+            "lat": -23.5505,
+            "lon": -46.6333
+        },
+        "asteroid": {
+            "diameter_m": 500,
+            "velocity_km_s": 20
+        },
+        "target_type": "land"
+    }
+    
+    Este endpoint:
+    1. Recibe coordenadas del frontend
+    2. Identifica qué ciudad/país es (reverse geocoding)
+    3. Simula el impacto
+    4. Retorna resultados con ciudades afectadas
+    """
+    try:
+        from app.services.geocoding_service import GeocodingService
+        
+        data = request.get_json()
+        
+        # Validar estructura
+        if 'coordinates' not in data or 'asteroid' not in data:
+            return jsonify({
+                'success': False,
+                'error': 'Missing coordinates or asteroid data'
+            }), 400
+        
+        lat = data['coordinates']['lat']
+        lon = data['coordinates']['lon']
+        diameter_m = data['asteroid']['diameter_m']
+        velocity_km_s = data['asteroid']['velocity_km_s']
+        target_type = data.get('target_type', 'land')
+        
+        # PASO 1: Identificar la ubicación
+        geocoding = GeocodingService()
+        location_info = geocoding.reverse_geocode(lat, lon)
+        
+        # PASO 2: Simular el impacto
+        results = impact_service.simulate_impact(
+            diameter_m=diameter_m,
+            velocity_km_s=velocity_km_s,
+            impact_lat=lat,
+            impact_lon=lon,
+            target_type=target_type
+        )
+        
+        # PASO 3: Agregar información de la ubicación identificada
+        results['impact']['location_identified'] = location_info if location_info else {
+            'note': 'Location in remote area (ocean or uninhabited)'
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': results
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
