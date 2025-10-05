@@ -79,6 +79,22 @@ def simulate_impact():
                 'error': 'Missing required fields: diameter_m and velocity_km_s, or nasa_data'
             }), 400
         
+        # Identificar la ubicación del impacto
+        from app.services.geocoding_service import GeocodingService
+        geocoding = GeocodingService()
+        location_info = geocoding.reverse_geocode(impact_lat, impact_lon)
+        
+        # Agregar información de ubicación identificada
+        results['impact']['location_identified'] = location_info if location_info else {
+            'city': None,
+            'country': None,
+            'country_code': None,
+            'formatted_address': 'Unknown location',
+            'is_ocean': False,
+            'is_remote': True,
+            'state': None
+        }
+        
         return jsonify({
             'success': True,
             'data': results
@@ -128,13 +144,32 @@ def simulate_asteroid_impact(asteroid_id):
         nasa_service = NASAService()
         asteroid_data = nasa_service.get_asteroid_details(asteroid_id)
         
+        impact_lat = data['impact_location']['lat']
+        impact_lon = data['impact_location']['lon']
+        
         # Simular impacto
         results = impact_service.simulate_from_nasa_data(
             asteroid_data=asteroid_data,
-            impact_lat=data['impact_location']['lat'],
-            impact_lon=data['impact_location']['lon'],
+            impact_lat=impact_lat,
+            impact_lon=impact_lon,
             target_type=data.get('target_type', 'land')
         )
+        
+        # NUEVO: Identificar la ubicación del impacto
+        from app.services.geocoding_service import GeocodingService
+        geocoding = GeocodingService()
+        location_info = geocoding.reverse_geocode(impact_lat, impact_lon)
+        
+        # Agregar información de ubicación identificada
+        results['impact']['location_identified'] = location_info if location_info else {
+            'city': None,
+            'country': None,
+            'country_code': None,
+            'formatted_address': 'Unknown location',
+            'is_ocean': False,
+            'is_remote': True,
+            'state': None
+        }
         
         # Agregar info del asteroide
         results['asteroid_info'] = {
@@ -514,7 +549,17 @@ def simulate_impact_from_coordinates():
             target_type=target_type
         )
         
-        # PASO 3: Agregar información de la ubicación identificada
+        # PASO 3: Agregar efectos ambientales
+        environmental_impacts = impact_service.environmental.calculate_environmental_impacts(
+            impact_lat=lat,
+            impact_lon=lon,
+            energy_megatons=results['energy']['megatons_tnt'],
+            crater_diameter_m=results['crater']['diameter_m'],
+            target_type=target_type
+        )
+        results['environmental_impacts'] = environmental_impacts
+        
+        # PASO 4: Agregar información de la ubicación identificada
         results['impact']['location_identified'] = location_info if location_info else {
             'note': 'Location in remote area (ocean or uninhabited)'
         }

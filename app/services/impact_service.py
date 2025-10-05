@@ -1,4 +1,7 @@
 from app.utils.physics import ImpactPhysics
+from app.services.orbital_service import OrbitalService
+from app.services.environmental_service import EnvironmentalService
+from app.services.geocoding_service import GeocodingService
 
 class ImpactService:
     """
@@ -10,6 +13,9 @@ class ImpactService:
     
     def __init__(self):
         self.physics = ImpactPhysics()
+        self.geocoding = GeocodingService()
+        self.orbital = OrbitalService()
+        self.environmental = EnvironmentalService()
     
     def simulate_impact(self, diameter_m, velocity_km_s, impact_lat, impact_lon, 
                        impact_angle=45, target_type='land'):
@@ -90,45 +96,39 @@ class ImpactService:
         return results
     
     def simulate_from_nasa_data(self, asteroid_data, impact_lat, impact_lon, target_type='land'):
-        """
-        Simula impacto usando datos directamente de la NASA API
+        """Simula impacto con datos de NASA incluyendo tiempo y efectos ambientales"""
         
-        Args:
-            asteroid_data: Objeto con datos de NASA (como el que recibiste)
-            impact_lat: Latitud del impacto
-            impact_lon: Longitud del impacto
-            target_type: 'land' o 'water'
-        
-        Returns:
-            Resultados de simulación
-        
-        Ejemplo de uso:
-            asteroid = {
-                "diameter_max_m": 701.52,
-                "diameter_min_m": 313.73,
-                "close_approach_data": [{
-                    "velocity_km_s": 18.29
-                }]
-            }
-            results = service.simulate_from_nasa_data(asteroid, -23.55, -46.63)
-        """
-        # Usar diámetro promedio
         diameter_max = asteroid_data.get('diameter_max_m', 0)
         diameter_min = asteroid_data.get('diameter_min_m', 0)
         diameter_avg = (diameter_max + diameter_min) / 2
         
-        # Obtener velocidad del primer close approach
         close_approach = asteroid_data.get('close_approach_data', [{}])[0]
-        velocity = close_approach.get('velocity_km_s', 20)  # Default 20 km/s
+        velocity = close_approach.get('velocity_km_s', 20)
         
-        # Simular con estos datos
-        return self.simulate_impact(
+        # Simular impacto básico
+        results = self.simulate_impact(
             diameter_m=diameter_avg,
             velocity_km_s=velocity,
             impact_lat=impact_lat,
             impact_lon=impact_lon,
             target_type=target_type
         )
+        
+        # NUEVO: Agregar tiempo de impacto
+        time_data = self.orbital.calculate_time_to_impact(asteroid_data)
+        results['time_to_impact'] = time_data
+        
+        # NUEVO: Agregar impactos ambientales
+        environmental_impacts = self.environmental.calculate_environmental_impacts(
+            impact_lat=impact_lat,
+            impact_lon=impact_lon,
+            energy_megatons=results['energy']['megatons_tnt'],
+            crater_diameter_m=results['crater']['diameter_m'],
+            target_type=target_type
+        )
+        results['environmental_impacts'] = environmental_impacts
+        
+        return results
     
     def _get_energy_comparison(self, megatons):
         """Comparaciones de energía con eventos conocidos"""

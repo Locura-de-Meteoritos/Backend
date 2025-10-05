@@ -1,5 +1,7 @@
 import math
 
+import math
+
 class ImpactPhysics:
     """Cálculos físicos para simulación de impactos de asteroides"""
     
